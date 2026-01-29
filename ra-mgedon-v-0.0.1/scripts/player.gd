@@ -1,116 +1,99 @@
 extends CharacterBody2D
 
-enum PlayerState {
+# ======================
+# ENUMY FSM
+# ======================
+enum MovementState {
 	IDLE,
 	RUN,
 	JUMP,
 	DOUBLE_JUMP,
 	FALL,
-	WALL_SLIDE,
-	WALL_JUMP,
-	DASH
+	WALL_SLIDE
 }
 
-var state = PlayerState.IDLE
+enum ActionState {
+	NONE,
+	DASH,
+	ATTACK
+}
 
-# === RUCH ===
+var move_state: MovementState = MovementState.IDLE
+var action_state: ActionState = ActionState.NONE
+
+# ======================
+# RUCH
+# ======================
 const SPEED = 300.0
 const JUMP_VELOCITY = -400.0
-
-# DOUBLE JUMP
-var can_double_jump = true
 const DOUBLE_JUMP_VELOCITY = -380.0
+var facing_dir := 1
 
-# === GRAWITACJA ===
-const BASE_GRAVITY = 1200.0
-const FALL_GRAVITY_MULT = 2.5
-const MAX_FALL_SPEED = 1200.0
-const JUMP_CUT_MULT = 0.4 # skrócenie skoku po puszczeniu przycisku
-
-# === COYOTE TIME ===
-const COYOTE_TIME = 0.12
-var coyote_timer = 0.0
-
-# === JUMP BUFFER ===
-const JUMP_BUFFER_TIME = 0.12
-var jump_buffer_timer = 0.0
-
-# === DASH ===
-const DASH_SPEED = 900.0
-const DASH_TIME = 0.15
-const DASH_COOLDOWN = 1.0
-
-var can_dash = true
-var is_dashing = false
-var dash_timer = 0.0
-var dash_cooldown_timer = 0.0
-var dash_direction = Vector2.ZERO
-
-# === WALL SLIDE / JUMP ===
-const WALL_SLIDE_SPEED = 120.0
-const WALL_JUMP_FORCE = Vector2(200, -550)
-const WALL_JUMP_LOCK_TIME = 0.15
-const WALL_JUMP_STATE_TIME = 0.4 # czas trwania stanu WALL_JUMP
-
-var is_wall_sliding = false
-var wall_jump_lock_timer = 0.0
-var wall_jump_state_timer = 0.0 # nowa zmienna do utrzymania stanu WALL_JUMP
-
-@onready var animated_sprite_2d: AnimatedSprite2D = $AnimatedSprite2D
-
-
-func _physics_process(delta):
-	print(state)
-	handle_dash(delta)
-	update_animation()
-
-	if not is_dashing:
-		apply_gravity(delta)
-		handle_timers(delta)
-		handle_wall_slide()
-		handle_wall_jump(delta)
-		handle_jump()
-		handle_movement()
-	
-	if is_on_floor():
-		can_dash = true
-		can_double_jump = true
-	move_and_slide()
-
+var can_double_jump := true
+var is_wall_jumping := false
 
 # ======================
 # GRAWITACJA
 # ======================
-func apply_gravity(delta):
-	if not is_on_floor():
-		if velocity.y < 0:
-			# wznoszenie
-			velocity.y += BASE_GRAVITY * delta
-		else:
-			# spadanie (mocniejsza grawitacja)
-			velocity.y += BASE_GRAVITY * FALL_GRAVITY_MULT * delta
-			velocity.y = min(velocity.y, MAX_FALL_SPEED)
-	else:
-		coyote_timer = COYOTE_TIME
+const BASE_GRAVITY = 1200.0
+const FALL_GRAVITY_MULT = 2.5
+const MAX_FALL_SPEED = 1200.0
+const JUMP_CUT_MULT = 0.4
 
-	# Utrzymywanie WALL_JUMP stanu jeśli timer > 0
-	if wall_jump_state_timer > 0:
-		wall_jump_state_timer -= delta
-		state = PlayerState.WALL_JUMP
-	else:
-		# normalne przypisywanie stanów
-		if not is_on_floor():
-			if velocity.y < 0 and can_double_jump:
-				state = PlayerState.JUMP
-			elif velocity.y < 0 and can_double_jump==false:
-				state=PlayerState.DOUBLE_JUMP
-			else:
-				state = PlayerState.FALL
-		else:
-			if abs(velocity.x) > 0:
-				state = PlayerState.RUN
-			else:
-				state = PlayerState.IDLE
+# ======================
+# COYOTE + BUFFER
+# ======================
+const COYOTE_TIME = 0.12
+const JUMP_BUFFER_TIME = 0.12
+var coyote_timer := 0.0
+var jump_buffer_timer := 0.0
+
+# ======================
+# DASH
+# ======================
+const DASH_SPEED = 900.0
+const DASH_TIME = 0.15
+const DASH_COOLDOWN = 1.0
+
+var dash_timer := 0.0
+var dash_dir := Vector2.ZERO
+var can_dash := true
+
+# ======================
+# WALL
+# ======================
+const WALL_SLIDE_SPEED = 120.0
+const WALL_JUMP_FORCE = Vector2(200, -550)
+const WALL_JUMP_LOCK_TIME = 0.15
+var wall_jump_lock_timer := 0.0
+
+# ======================
+# ATTACK
+# ======================
+const ATTACK_TIME = 0.2
+var attack_timer := 0.0
+@onready var attack_hitbox: Area2D = $attack_hitbox
+
+@onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
+
+
+# ======================
+# MAIN LOOP
+# ======================
+func _physics_process(delta):
+	# KONTAKT ZE ŚCIANĄ RESETUJE KONTEKST POWIETRZA
+	if is_on_wall():
+		can_double_jump = true
+		is_wall_jumping = false
+
+	handle_timers(delta)
+	handle_action_fsm(delta)
+
+	if action_state == ActionState.NONE:
+		handle_movement_fsm(delta)
+
+	move_and_slide()
+	update_animation()
 
 
 # ======================
@@ -119,123 +102,199 @@ func apply_gravity(delta):
 func handle_timers(delta):
 	coyote_timer -= delta
 	jump_buffer_timer -= delta
-
+	wall_jump_lock_timer -= delta
 
 	if Input.is_action_just_pressed("jump"):
 		jump_buffer_timer = JUMP_BUFFER_TIME
 
 
 # ======================
-# SKOK
+# ACTION FSM (PRIORYTET)
+# ======================
+func handle_action_fsm(delta):
+	match action_state:
+		ActionState.DASH:
+			update_dash(delta)
+		ActionState.ATTACK:
+			update_attack(delta)
+		ActionState.NONE:
+			check_action_input()
+
+
+func check_action_input():
+	if Input.is_action_just_pressed("dash") and can_dash:
+		start_dash()
+	elif Input.is_action_just_pressed("attack"):
+		start_attack()
+
+
+# ======================
+# DASH
+# ======================
+func start_dash():
+	action_state = ActionState.DASH
+	dash_timer = DASH_TIME
+	dash_dir = Vector2(facing_dir, 0)
+	can_dash = false
+
+
+func update_dash(delta):
+	dash_timer -= delta
+	velocity.x = dash_dir.x * DASH_SPEED
+	velocity.y = 0
+
+	if dash_timer <= 0:
+		action_state = ActionState.NONE
+
+
+# ======================
+# ATTACK
+# ======================
+func start_attack():
+	action_state = ActionState.ATTACK
+	attack_timer = ATTACK_TIME
+	attack_hitbox.position.x = 24 * facing_dir
+	attack_hitbox.monitoring = true
+
+
+func update_attack(delta):
+	attack_timer -= delta
+	if attack_timer <= 0:
+		attack_hitbox.monitoring = false
+		action_state = ActionState.NONE
+
+
+# ======================
+# MOVEMENT FSM
+# ======================
+func handle_movement_fsm(delta):
+	apply_gravity(delta)
+	handle_wall_jump()
+	handle_jump()
+	handle_horizontal()
+	handle_wall_slide()
+	update_movement_state()
+
+
+# ======================
+# GRAWITACJA
+# ======================
+func apply_gravity(delta):
+	if not is_on_floor():
+		if velocity.y < 0:
+			velocity.y += BASE_GRAVITY * delta
+		else:
+			velocity.y += BASE_GRAVITY * FALL_GRAVITY_MULT * delta
+			velocity.y = min(velocity.y, MAX_FALL_SPEED)
+	else:
+		coyote_timer = COYOTE_TIME
+		can_double_jump = true
+		can_dash = true
+		is_wall_jumping = false
+
+
+# ======================
+# SKOK / DOUBLE JUMP
 # ======================
 func handle_jump():
-	# normalny skok + coyote time + buffer
+	# WALL JUMP MA ABSOLUTNY PRIORYTET
+	if is_on_wall() and not is_on_floor():
+		return
+
+	# normalny skok
 	if jump_buffer_timer > 0 and coyote_timer > 0:
 		velocity.y = JUMP_VELOCITY
 		jump_buffer_timer = 0
 		coyote_timer = 0
-		
 
-	# skrócenie skoku po puszczeniu przycisku
+	# skracanie skoku
 	if Input.is_action_just_released("jump") and velocity.y < 0:
 		velocity.y *= JUMP_CUT_MULT
-	# DOUBLE JUMP
+
+	# DOUBLE JUMP (TYLKO W POWIETRZU I NIE PRZY ŚCIANIE)
 	if jump_buffer_timer > 0 and not is_on_floor() and can_double_jump and velocity.y > 0:
 		velocity.y = DOUBLE_JUMP_VELOCITY
-		jump_buffer_timer = 0
 		can_double_jump = false
-		state = PlayerState.DOUBLE_JUMP
-	if jump_buffer_timer > 0 and can_double_jump==false and not is_on_floor() and velocity.y<0:
-		state = PlayerState.DOUBLE_JUMP
+		is_wall_jumping = false   # <<< KLUCZOWA LINIA
+		jump_buffer_timer = 0
+
+
+
+# ======================
+# WALL JUMP
+# ======================
+func handle_wall_jump():
+	if wall_jump_lock_timer > 0:
+		return
+
+	if is_on_wall() and not is_on_floor() and Input.is_action_just_pressed("jump"):
+		var n = get_wall_normal()
+		velocity.x = n.x * WALL_JUMP_FORCE.x
+		velocity.y = WALL_JUMP_FORCE.y
+		facing_dir = -sign(n.x)
+
+		is_wall_jumping = true
+		can_double_jump = true
+		wall_jump_lock_timer = WALL_JUMP_LOCK_TIME
+
 
 # ======================
 # RUCH POZIOMY
 # ======================
-func handle_movement():
+func handle_horizontal():
 	if wall_jump_lock_timer > 0:
 		return
 
-	var direction := Input.get_axis("left", "right")
-	if direction:
-		velocity.x = direction * SPEED
-		if is_on_floor():
-			state = PlayerState.RUN
+	var dir := Input.get_axis("left", "right")
+	if dir != 0:
+		velocity.x = dir * SPEED
+		facing_dir = sign(dir)
 	else:
 		velocity.x = move_toward(velocity.x, 0, SPEED)
-		if is_on_floor():
-			state = PlayerState.IDLE
 
 
-func handle_dash(delta):
-	if is_dashing:
-		state = PlayerState.DASH
-
-	dash_cooldown_timer -= delta
-
-	if Input.is_action_just_pressed("dash") and can_dash and not is_dashing:
-		is_dashing = true
-		can_dash = false
-		dash_timer = DASH_TIME
-		dash_cooldown_timer = DASH_COOLDOWN
-		
-		var input_dir = Vector2(
-			Input.get_axis("left", "right"),
-			Input.get_axis("up", "down")
-		)
-		dash_direction = input_dir.normalized()
-		if dash_direction == Vector2.ZERO:
-			dash_direction = Vector2(sign(velocity.x), 0)
-			if dash_direction == Vector2.ZERO:
-				dash_direction = Vector2.RIGHT
-	# LOGIKA DASHA
-	if is_dashing:
-		dash_timer -= delta
-		velocity = dash_direction * DASH_SPEED
-
-		if dash_timer <= 0:
-			is_dashing = false
-			velocity.y = clamp(velocity.y, -200, MAX_FALL_SPEED)
-
-
+# ======================
+# WALL SLIDE
+# ======================
 func handle_wall_slide():
-	if is_wall_sliding:
-		state = PlayerState.WALL_SLIDE
-
-	is_wall_sliding = false
-
 	if not is_on_floor() and is_on_wall() and velocity.y > 0:
-		is_wall_sliding = true
+		is_wall_jumping = false
 		velocity.y = min(velocity.y, WALL_SLIDE_SPEED)
 
 
-func handle_wall_jump(delta):
-	if wall_jump_lock_timer > 0:
-		wall_jump_lock_timer -= delta
+# ======================
+# MOVEMENT STATE
+# ======================
+func update_movement_state():
+	if not is_on_floor():
+		if is_on_wall() and velocity.y > 0:
+			move_state = MovementState.WALL_SLIDE
+		elif is_wall_jumping:
+			move_state = MovementState.JUMP
+		elif velocity.y < 0:
+			move_state = MovementState.DOUBLE_JUMP if not can_double_jump else MovementState.JUMP
+		else:
+			move_state = MovementState.FALL
+	else:
+		move_state = MovementState.RUN if abs(velocity.x) > 10 else MovementState.IDLE
 
-	if is_wall_sliding and Input.is_action_just_pressed("jump"):
-		var wall_normal = get_wall_normal()
-		velocity.x = wall_normal.x * WALL_JUMP_FORCE.x
-		velocity.y = WALL_JUMP_FORCE.y
-		wall_jump_lock_timer = WALL_JUMP_LOCK_TIME
-		wall_jump_state_timer = WALL_JUMP_STATE_TIME # ustaw timer WALL_JUMP
-		state = PlayerState.WALL_JUMP
 
-
+# ======================
+# ANIMACJE
+# ======================
 func update_animation():
-	match state:
-		PlayerState.IDLE:
-			animated_sprite_2d.play("idle")
-		PlayerState.RUN:
-			animated_sprite_2d.play("run")
-		PlayerState.JUMP:
-			animated_sprite_2d.play("jump")
-		PlayerState.FALL:
-			animated_sprite_2d.play("fall")
-		PlayerState.WALL_SLIDE:
-			animated_sprite_2d.play("wall_slide")
-		PlayerState.WALL_JUMP:
-			animated_sprite_2d.play("wall_jump")
-		PlayerState.DASH:
-			animated_sprite_2d.play("dash")
-		PlayerState.DOUBLE_JUMP:
-			animated_sprite_2d.play("double_jump")
+	if action_state == ActionState.DASH:
+		sprite.play("dash")
+	elif action_state == ActionState.ATTACK:
+		sprite.play("attack")
+		$attack_hitbox/Sprite2D.show() #testowe
+	else:
+		match move_state:
+			MovementState.IDLE: sprite.play("idle")
+			MovementState.RUN: sprite.play("run")
+			MovementState.JUMP: sprite.play("jump")
+			MovementState.DOUBLE_JUMP: sprite.play("double_jump")
+			MovementState.FALL: sprite.play("fall")
+			MovementState.WALL_SLIDE: sprite.play("wall_slide")
+
+	sprite.flip_h = facing_dir < 0
