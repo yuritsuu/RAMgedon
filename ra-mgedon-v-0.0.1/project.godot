@@ -15,6 +15,10 @@ run/main_scene="uid://gl5o56grgjnc"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://asstes/icon.svg"
 
+[autoload]
+
+PlayerStats="*uid://c77bn20elngba"
+
 [input]
 
 left={

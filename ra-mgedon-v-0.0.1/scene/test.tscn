@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://cdrpei3sllff5" path="res://asstes/icon.svg" id="1_fghjm"]
 [ext_resource type="PackedScene" uid="uid://d026ad036ret" path="res://scene/player.tscn" id="2_bp0px"]
+[ext_resource type="PackedScene" uid="uid://ndadjaevwgeq" path="res://scene/healt_bar.tscn" id="3_5u11y"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bp0px"]
 size = Vector2(124.88691, 117)
@@ -12,10 +13,20 @@ size = Vector2(17.62146, 65)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_u3ux8"]
 size = Vector2(128.5, 710)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1ifl7"]
+size = Vector2(143, 88)
+
 [node name="test" type="Node2D" unique_id=1981941953]
 
 [node name="Player" parent="." unique_id=1339034439 instance=ExtResource("2_bp0px")]
 position = Vector2(-54, 19)
+
+[node name="CanvasLayer2" type="CanvasLayer" parent="Player" unique_id=542031770]
+
+[node name="HealthBar" parent="Player/CanvasLayer2" unique_id=128850726 instance=ExtResource("3_5u11y")]
+unique_name_in_owner = true
+offset_right = 236.0
+offset_bottom = 23.0
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=1640398419]
 position = Vector2(-5, 124.5)
@@ -52,3 +63,11 @@ texture = ExtResource("1_fghjm")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D3" unique_id=2079377301]
 position = Vector2(-278.75, -289)
 shape = SubResource("RectangleShape2D_u3ux8")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=857626234]
+collision_layer = 3
+collision_mask = 3
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=1150924254]
+position = Vector2(58.5, 17)
+shape = SubResource("RectangleShape2D_1ifl7")

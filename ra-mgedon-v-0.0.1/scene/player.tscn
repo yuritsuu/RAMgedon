@@ -390,11 +390,11 @@ animations = [{
 "speed": 10.0
 }]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_hjaqi"]
-size = Vector2(16, 19)
-
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fvtld"]
 size = Vector2(21, 17)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hjaqi"]
+size = Vector2(16, 19)
 
 [node name="Player" type="CharacterBody2D" unique_id=1339034439]
 script = ExtResource("1_xo3ru")
@@ -412,11 +412,6 @@ animation = &"idle"
 autoplay = "idle"
 frame_progress = 0.7314668
 
-[node name="hitbox" type="CollisionShape2D" parent="." unique_id=2090951614]
-position = Vector2(0, 3.5)
-shape = SubResource("RectangleShape2D_hjaqi")
-debug_color = Color(0.96862745, 0, 0, 0.41960785)
-
 [node name="attack_hitbox" type="Area2D" parent="." unique_id=1635129698]
 
 [node name="Range" type="CollisionShape2D" parent="attack_hitbox" unique_id=552042295]
@@ -430,3 +425,13 @@ visible = false
 position = Vector2(-1.7881393e-07, 1.5)
 scale = Vector2(0.15625001, 0.1328125)
 texture = ExtResource("2_hjaqi")
+
+[node name="hitbox" type="Area2D" parent="." unique_id=1274429013]
+collision_layer = 3
+
+[node name="hitboxArea" type="CollisionShape2D" parent="hitbox" unique_id=2090951614]
+position = Vector2(0, 3.5)
+shape = SubResource("RectangleShape2D_hjaqi")
+debug_color = Color(0.96862745, 0, 0, 0.41960785)
+
+[connection signal="area_entered" from="hitbox" to="." method="_on_hitbox_area_entered"]

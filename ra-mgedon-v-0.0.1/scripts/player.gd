@@ -75,8 +75,13 @@ var attack_timer := 0.0
 @onready var attack_hitbox: Area2D = $attack_hitbox
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
+@onready var health_bar: ProgressBar = %HealthBar
 
 
+func _ready() -> void:
+	
+	health_bar.init_health(PlayerStats.MAX_HP)
+	
 # ======================
 # MAIN LOOP
 # ======================
@@ -85,13 +90,13 @@ func _physics_process(delta):
 	if is_on_wall():
 		can_double_jump = true
 		is_wall_jumping = false
-
+	print(PlayerStats.HP)
 	handle_timers(delta)
 	handle_action_fsm(delta)
 
 	if action_state == ActionState.NONE:
 		handle_movement_fsm(delta)
-
+	
 	move_and_slide()
 	update_animation()
 
@@ -298,3 +303,7 @@ func update_animation():
 			MovementState.WALL_SLIDE: sprite.play("wall_slide")
 
 	sprite.flip_h = facing_dir < 0
+
+
+func _on_hitbox_area_entered(area: Area2D) -> void:
+	health_bar.health-=10
