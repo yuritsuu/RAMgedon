@@ -18,6 +18,13 @@ enum ActionState {
 	ATTACK
 }
 
+enum AttackDirection {
+	FORWARD,
+	UP,
+	DOWN
+}
+
+var attack_dir: AttackDirection = AttackDirection.FORWARD
 var move_state: MovementState = MovementState.IDLE
 var action_state: ActionState = ActionState.NONE
 
@@ -35,9 +42,9 @@ var is_wall_jumping := false
 # ======================
 # GRAWITACJA
 # ======================
-const BASE_GRAVITY = 1200.0
+const BASE_GRAVITY = 1000.0
 const FALL_GRAVITY_MULT = 2.5
-const MAX_FALL_SPEED = 1200.0
+const MAX_FALL_SPEED = 1100.0
 const JUMP_CUT_MULT = 0.4
 
 # ======================
@@ -63,7 +70,7 @@ var can_dash := true
 # WALL
 # ======================
 const WALL_SLIDE_SPEED = 120.0
-const WALL_JUMP_FORCE = Vector2(200, -550)
+const WALL_JUMP_FORCE = Vector2(200, -450)
 const WALL_JUMP_LOCK_TIME = 0.15
 var wall_jump_lock_timer := 0.0
 
@@ -73,15 +80,14 @@ var wall_jump_lock_timer := 0.0
 const ATTACK_TIME = 0.2
 var attack_timer := 0.0
 @onready var attack_hitbox: Area2D = $attack_hitbox
+@onready var range: CollisionShape2D = $attack_hitbox/Range
+@onready var health_bar: ProgressBar = $CanvasLayer/HealtBar
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
-@onready var health_bar: ProgressBar = %HealthBar
 
 
-func _ready() -> void:
-	
-	health_bar.init_health(PlayerStats.MAX_HP)
-	
+
+
 # ======================
 # MAIN LOOP
 # ======================
@@ -130,7 +136,15 @@ func check_action_input():
 	if Input.is_action_just_pressed("dash") and can_dash:
 		start_dash()
 	elif Input.is_action_just_pressed("attack"):
+		# ustaw kierunek ataku w zależności od inputu
+		if Input.is_action_pressed("up"):
+			attack_dir = AttackDirection.UP
+		elif Input.is_action_pressed("down"):
+			attack_dir = AttackDirection.DOWN
+		else:
+			attack_dir = AttackDirection.FORWARD 
 		start_attack()
+
 
 
 # ======================
@@ -141,7 +155,7 @@ func start_dash():
 	dash_timer = DASH_TIME
 	dash_dir = Vector2(facing_dir, 0)
 	can_dash = false
-
+	
 
 func update_dash(delta):
 	dash_timer -= delta
@@ -158,8 +172,20 @@ func update_dash(delta):
 func start_attack():
 	action_state = ActionState.ATTACK
 	attack_timer = ATTACK_TIME
-	attack_hitbox.position.x = 24 * facing_dir
 	attack_hitbox.monitoring = true
+	
+	
+	match attack_dir:
+		AttackDirection.FORWARD:
+			attack_hitbox.position = Vector2(24 * facing_dir, -1)
+			range.shape.extents = Vector2(16, 12)
+		AttackDirection.UP:
+			attack_hitbox.position = Vector2(0, -24)
+			range.shape.extents = Vector2(12, 16)
+		AttackDirection.DOWN:
+			attack_hitbox.position = Vector2(0, 20)
+			range.shape.extents = Vector2(12, 16)
+
 
 
 func update_attack(delta):
@@ -167,6 +193,19 @@ func update_attack(delta):
 	if attack_timer <= 0:
 		attack_hitbox.monitoring = false
 		action_state = ActionState.NONE
+		$attack_hitbox/Sprite2D.hide()
+
+func _on_attack_hitbox_body_entered(body):
+	if body.has_method("take_damage"):
+		body.take_damage(10)
+		match attack_dir:
+			AttackDirection.FORWARD:
+				body.velocity.x = facing_dir * 200
+			AttackDirection.UP:
+				body.velocity.y = -300
+			AttackDirection.DOWN:
+				body.velocity.y = 300
+
 
 
 # ======================
@@ -291,7 +330,10 @@ func update_animation():
 	if action_state == ActionState.DASH:
 		sprite.play("dash")
 	elif action_state == ActionState.ATTACK:
-		sprite.play("attack")
+		match attack_dir:
+			AttackDirection.FORWARD: sprite.play("attack")
+			AttackDirection.UP: sprite.play("attack_up")
+			AttackDirection.DOWN: sprite.play("attack_down")
 		$attack_hitbox/Sprite2D.show() #testowe
 	else:
 		match move_state:

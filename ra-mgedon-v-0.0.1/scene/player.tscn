@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://cqs6j1x3hi4ot" path="res://asstes/Ninja Frog/Jump (32x32).png" id="6_34jf3"]
 [ext_resource type="Texture2D" uid="uid://bmhp8uftc5cf4" path="res://asstes/Ninja Frog/Run (32x32).png" id="7_u7b46"]
 [ext_resource type="Texture2D" uid="uid://dv2bmrqs4r3dx" path="res://asstes/Ninja Frog/Wall Jump (32x32).png" id="8_j4wxg"]
+[ext_resource type="PackedScene" uid="uid://ndadjaevwgeq" path="res://scene/healt_bar.tscn" id="10_ml7e8"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xo3ru"]
 size = Vector2(23, 26)
@@ -433,5 +434,11 @@ collision_layer = 3
 position = Vector2(0, 3.5)
 shape = SubResource("RectangleShape2D_hjaqi")
 debug_color = Color(0.96862745, 0, 0, 0.41960785)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=300571820]
+offset = Vector2(10, 10)
+transform = Transform2D(1, 0, 0, 1, 10, 10)
+
+[node name="HealtBar" parent="CanvasLayer" unique_id=1063016894 instance=ExtResource("10_ml7e8")]
 
 [connection signal="area_entered" from="hitbox" to="." method="_on_hitbox_area_entered"]

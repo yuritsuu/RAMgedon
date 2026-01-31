@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://ndadjaevwgeq"]
 
-[ext_resource type="Script" uid="uid://bpxmqdh2b4poy" path="res://scripts/healt_bar.gd" id="1_veefd"]
+[ext_resource type="Script" uid="uid://bpxmqdh2b4poy" path="res://scripts/health_bar.gd" id="1_veefd"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_a1ogy"]
 
@@ -19,10 +19,10 @@ shadow_offset = Vector2(0, 1)
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5cp4k"]
 bg_color = Color(0, 0.1764706, 1, 1)
 
-[node name="HealtBar" type="ProgressBar" unique_id=1063016894]
+[node name="HealthBar" type="ProgressBar" unique_id=1063016894]
 z_index = 1
-offset_right = 200.0
-offset_bottom = 12.0
+offset_right = 316.0
+offset_bottom = 24.0
 theme_override_styles/background = SubResource("StyleBoxEmpty_a1ogy")
 theme_override_styles/fill = SubResource("StyleBoxFlat_kk35d")
 value = 50.0
