@@ -79,8 +79,15 @@ var wall_jump_lock_timer := 0.0
 # ======================
 const ATTACK_TIME = 0.2
 var attack_timer := 0.0
+const MAX_COMBO = 4
+const COMBO_RESET_TIME = 1.0
+var combo_step := 0
+var combo_timer := 0.0
+
 @onready var attack_hitbox: Area2D = $attack_hitbox
-@onready var range: CollisionShape2D = $attack_hitbox/Range
+@onready var attack_range: CollisionShape2D = $attack_hitbox/Range
+
+
 @onready var health_bar: ProgressBar = $CanvasLayer/HealtBar
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
@@ -92,19 +99,18 @@ var attack_timer := 0.0
 # MAIN LOOP
 # ======================
 func _physics_process(delta):
-	# KONTAKT ZE ŚCIANĄ RESETUJE KONTEKST POWIETRZA
-	if is_on_wall():
-		can_double_jump = true
-		is_wall_jumping = false
-	print(PlayerStats.HP)
 	handle_timers(delta)
+	print(combo_step)
+	# ACTION FSM (dash / attack)
 	handle_action_fsm(delta)
 
-	if action_state == ActionState.NONE:
+	# DASH BLOKUJE RUCH, ATAK NIE
+	if action_state != ActionState.DASH:
 		handle_movement_fsm(delta)
-	
+
 	move_and_slide()
 	update_animation()
+
 
 
 # ======================
@@ -114,6 +120,9 @@ func handle_timers(delta):
 	coyote_timer -= delta
 	jump_buffer_timer -= delta
 	wall_jump_lock_timer -= delta
+	combo_timer -= delta
+	if combo_timer <= 0:
+		combo_step = 0
 
 	if Input.is_action_just_pressed("jump"):
 		jump_buffer_timer = JUMP_BUFFER_TIME
@@ -136,14 +145,15 @@ func check_action_input():
 	if Input.is_action_just_pressed("dash") and can_dash:
 		start_dash()
 	elif Input.is_action_just_pressed("attack"):
-		# ustaw kierunek ataku w zależności od inputu
-		if Input.is_action_pressed("up"):
-			attack_dir = AttackDirection.UP
-		elif Input.is_action_pressed("down"):
-			attack_dir = AttackDirection.DOWN
-		else:
-			attack_dir = AttackDirection.FORWARD 
-		start_attack()
+		if action_state == ActionState.NONE or action_state == ActionState.ATTACK:
+			if Input.is_action_pressed("up"):
+				attack_dir = AttackDirection.UP
+			elif Input.is_action_pressed("down"):
+				attack_dir = AttackDirection.DOWN
+			else:
+				attack_dir = AttackDirection.FORWARD
+			start_attack()
+
 
 
 
@@ -169,23 +179,39 @@ func update_dash(delta):
 # ======================
 # ATTACK
 # ======================
+var previous_attack_dir = AttackDirection.FORWARD
+
 func start_attack():
+	# Reset combo jeśli zmieniono kierunek lub combo wygasło
+	if attack_dir != previous_attack_dir or combo_timer <= 0:
+		combo_step = 0  # reset do początku
+
+	previous_attack_dir = attack_dir  # zapamiętaj aktualny kierunek
+
 	action_state = ActionState.ATTACK
 	attack_timer = ATTACK_TIME
+
+	# Zwiększamy combo tylko dla ataku FORWARD
+	if attack_dir == AttackDirection.FORWARD:
+		combo_step += 1
+		if combo_step > MAX_COMBO:
+			combo_step = 1
+	else:
+		combo_step = 1  # dla UP i DOWN zawsze start od 1
+
+	combo_timer = COMBO_RESET_TIME
 	attack_hitbox.monitoring = true
-	
-	
+	attack_range.disabled=false
 	match attack_dir:
 		AttackDirection.FORWARD:
 			attack_hitbox.position = Vector2(24 * facing_dir, -1)
-			range.shape.extents = Vector2(16, 12)
+			attack_range.shape.extents = Vector2(16, 12)
 		AttackDirection.UP:
 			attack_hitbox.position = Vector2(0, -24)
-			range.shape.extents = Vector2(12, 16)
+			attack_range.shape.extents = Vector2(12, 16)
 		AttackDirection.DOWN:
 			attack_hitbox.position = Vector2(0, 20)
-			range.shape.extents = Vector2(12, 16)
-
+			attack_range.shape.extents = Vector2(12, 16)
 
 
 func update_attack(delta):
@@ -194,6 +220,8 @@ func update_attack(delta):
 		attack_hitbox.monitoring = false
 		action_state = ActionState.NONE
 		$attack_hitbox/Sprite2D.hide()
+		attack_range.disabled=true
+
 
 func _on_attack_hitbox_body_entered(body):
 	if body.has_method("take_damage"):
@@ -330,22 +358,38 @@ func update_animation():
 	if action_state == ActionState.DASH:
 		sprite.play("dash")
 	elif action_state == ActionState.ATTACK:
+		var anim := ""
+
 		match attack_dir:
-			AttackDirection.FORWARD: sprite.play("attack")
-			AttackDirection.UP: sprite.play("attack_up")
-			AttackDirection.DOWN: sprite.play("attack_down")
-		$attack_hitbox/Sprite2D.show() #testowe
+			AttackDirection.FORWARD:
+				anim = "attack_fwd_%d" % combo_step  # combo działa tylko w przód
+			AttackDirection.UP:
+				anim = "attack_up_1"  # UP zawsze 1
+			AttackDirection.DOWN:
+				anim = "attack_down_1"  # DOWN zawsze 1
+
+		if sprite.animation != anim:
+			sprite.play(anim)
+
+		$attack_hitbox/Sprite2D.show()
 	else:
 		match move_state:
-			MovementState.IDLE: sprite.play("idle")
-			MovementState.RUN: sprite.play("run")
-			MovementState.JUMP: sprite.play("jump")
-			MovementState.DOUBLE_JUMP: sprite.play("double_jump")
-			MovementState.FALL: sprite.play("fall")
-			MovementState.WALL_SLIDE: sprite.play("wall_slide")
+			MovementState.IDLE:
+				sprite.play("idle")
+			MovementState.RUN:
+				sprite.play("run")
+			MovementState.JUMP:
+				sprite.play("jump")
+			MovementState.DOUBLE_JUMP:
+				sprite.play("double_jump")
+			MovementState.FALL:
+				sprite.play("fall")
+			MovementState.WALL_SLIDE:
+				sprite.play("wall_slide")
 
 	sprite.flip_h = facing_dir < 0
 
 
 func _on_hitbox_area_entered(area: Area2D) -> void:
-	health_bar.health-=10
+	if area.name=="enemy_attack_range":
+		health_bar.health-=10
