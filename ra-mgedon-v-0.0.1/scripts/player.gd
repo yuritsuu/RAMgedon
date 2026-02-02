@@ -83,6 +83,8 @@ const MAX_COMBO = 4
 const COMBO_RESET_TIME = 1.0
 var combo_step := 0
 var combo_timer := 0.0
+var freeze_timer := 0.0
+var previous_attack_dir = AttackDirection.FORWARD
 
 @onready var attack_hitbox: Area2D = $attack_hitbox
 @onready var attack_range: CollisionShape2D = $attack_hitbox/Range
@@ -95,12 +97,19 @@ var combo_timer := 0.0
 
 
 
+
 # ======================
 # MAIN LOOP
 # ======================
 func _physics_process(delta):
+	if freeze_timer > 0:
+		freeze_timer -= delta
+		return
+
+	# reszta _physics_process
+
 	handle_timers(delta)
-	print(combo_step)
+	
 	# ACTION FSM (dash / attack)
 	handle_action_fsm(delta)
 
@@ -110,6 +119,7 @@ func _physics_process(delta):
 
 	move_and_slide()
 	update_animation()
+
 
 
 
@@ -179,7 +189,7 @@ func update_dash(delta):
 # ======================
 # ATTACK
 # ======================
-var previous_attack_dir = AttackDirection.FORWARD
+
 
 func start_attack():
 	# Reset combo jeśli zmieniono kierunek lub combo wygasło
@@ -222,10 +232,20 @@ func update_attack(delta):
 		$attack_hitbox/Sprite2D.hide()
 		attack_range.disabled=true
 
+func get_combo_damage():
+	match combo_step:
+		1: return 10
+		2: return 12
+		3: return 15
+		4: return 25
+	return 10
+
 
 func _on_attack_hitbox_body_entered(body):
 	if body.has_method("take_damage"):
-		body.take_damage(10)
+		body.take_damage(get_combo_damage())
+		hit_stop(0.05)
+
 		match attack_dir:
 			AttackDirection.FORWARD:
 				body.velocity.x = facing_dir * 200
@@ -233,6 +253,14 @@ func _on_attack_hitbox_body_entered(body):
 				body.velocity.y = -300
 			AttackDirection.DOWN:
 				body.velocity.y = 300
+
+
+
+func hit_stop(time := 0.05):
+	freeze_timer = time
+	freeze_timer = time
+
+
 
 
 
