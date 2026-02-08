@@ -477,11 +477,11 @@ animations = [{
 "speed": 10.0
 }]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_fvtld"]
-size = Vector2(21, 17)
-
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hjaqi"]
 size = Vector2(16, 19)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fvtld"]
+size = Vector2(21, 17)
 
 [node name="Player" type="CharacterBody2D" unique_id=1339034439]
 script = ExtResource("1_xo3ru")
@@ -498,20 +498,6 @@ sprite_frames = SubResource("SpriteFrames_ml7e8")
 animation = &"attack_fwd_4"
 autoplay = "idle"
 
-[node name="attack_hitbox" type="Area2D" parent="." unique_id=1635129698]
-
-[node name="Range" type="CollisionShape2D" parent="attack_hitbox" unique_id=552042295]
-position = Vector2(0, 1.5)
-shape = SubResource("RectangleShape2D_fvtld")
-disabled = true
-debug_color = Color(0, 1, 1, 0.41960785)
-
-[node name="Sprite2D" type="Sprite2D" parent="attack_hitbox" unique_id=191651878]
-visible = false
-position = Vector2(-1.7881393e-07, 1.5)
-scale = Vector2(0.15625001, 0.1328125)
-texture = ExtResource("2_hjaqi")
-
 [node name="hitbox" type="Area2D" parent="." unique_id=1274429013]
 collision_layer = 3
 
@@ -526,5 +512,23 @@ transform = Transform2D(1, 0, 0, 1, 10, 10)
 
 [node name="HealtBar" parent="CanvasLayer" unique_id=1063016894 instance=ExtResource("10_ml7e8")]
 
-[connection signal="body_entered" from="attack_hitbox" to="." method="_on_attack_hitbox_body_entered"]
+[node name="weapons" type="Node2D" parent="." unique_id=65775457]
+
+[node name="weapon1" type="Node2D" parent="weapons" unique_id=515442572]
+
+[node name="attack_hitbox" type="Area2D" parent="weapons/weapon1" unique_id=1635129698]
+
+[node name="Range" type="CollisionShape2D" parent="weapons/weapon1/attack_hitbox" unique_id=552042295]
+position = Vector2(0, 1.5)
+shape = SubResource("RectangleShape2D_fvtld")
+disabled = true
+debug_color = Color(0, 1, 1, 0.41960785)
+
+[node name="Sprite2D" type="Sprite2D" parent="weapons/weapon1/attack_hitbox" unique_id=191651878]
+visible = false
+position = Vector2(-1.7881393e-07, 1.5)
+scale = Vector2(0.15625001, 0.1328125)
+texture = ExtResource("2_hjaqi")
+
 [connection signal="area_entered" from="hitbox" to="." method="_on_hitbox_area_entered"]
+[connection signal="body_entered" from="weapons/weapon1/attack_hitbox" to="." method="_on_attack_hitbox_body_entered"]

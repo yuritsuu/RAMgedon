@@ -71,8 +71,8 @@ var combo_timer := 0.0
 var freeze_timer := 0.0
 var previous_attack_dir = AttackDirection.FORWARD
 
-@onready var attack_hitbox: Area2D = $attack_hitbox
-@onready var attack_range: CollisionShape2D = $attack_hitbox/Range
+@onready var attack_hitbox: Area2D = $weapons/weapon1/attack_hitbox
+@onready var attack_range: CollisionShape2D = $weapons/weapon1/attack_hitbox/Range
 @onready var health_bar: ProgressBar = $CanvasLayer/HealtBar
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -194,7 +194,7 @@ func update_attack(delta):
 		attack_hitbox.monitoring = false
 		attack_range.disabled = true
 		action_state = ActionState.NONE
-		$attack_hitbox/Sprite2D.hide()
+		$weapons/weapon1/attack_hitbox/Sprite2D.hide()
 
 
 func get_combo_damage():
@@ -213,8 +213,8 @@ func _on_attack_hitbox_body_entered(body):
 
 		match attack_dir:
 			AttackDirection.FORWARD: body.velocity.x = facing_dir * 200
-			AttackDirection.UP: body.velocity.y = -300
-			AttackDirection.DOWN: body.velocity.y = 300
+			AttackDirection.UP: body.velocity.y = -150
+			AttackDirection.DOWN: body.velocity.y = 150
 
 
 func hit_stop(time := 0.05):
@@ -321,6 +321,7 @@ func update_movement_state():
 	if not is_on_floor():
 		if is_on_wall() and velocity.y > 0:
 			move_state = MovementState.WALL_SLIDE
+			can_dash=true
 		elif is_wall_jumping:
 			move_state = MovementState.JUMP
 		elif velocity.y < 0:
@@ -346,7 +347,7 @@ func update_animation():
 
 		if sprite.animation != anim:
 			sprite.play(anim)
-		$attack_hitbox/Sprite2D.show()
+		$weapons/weapon1/attack_hitbox/Sprite2D.show()
 	else:
 		match move_state:
 			MovementState.IDLE: sprite.play("idle")

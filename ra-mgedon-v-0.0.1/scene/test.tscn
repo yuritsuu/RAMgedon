@@ -78,6 +78,6 @@ position = Vector2(5.5, -5)
 shape = SubResource("RectangleShape2D_hngkw")
 
 [node name="enemy_test" parent="." unique_id=763155620 instance=ExtResource("4_1ifl7")]
-position = Vector2(315, -23)
+position = Vector2(180, -21)
 
 [connection signal="body_entered" from="Area2D2" to="Area2D2" method="_on_body_entered"]
