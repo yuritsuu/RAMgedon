@@ -531,4 +531,5 @@ scale = Vector2(0.15625001, 0.1328125)
 texture = ExtResource("2_hjaqi")
 
 [connection signal="area_entered" from="hitbox" to="." method="_on_hitbox_area_entered"]
+[connection signal="area_entered" from="weapons/weapon1/attack_hitbox" to="." method="_on_attack_hitbox_area_entered"]
 [connection signal="body_entered" from="weapons/weapon1/attack_hitbox" to="." method="_on_attack_hitbox_body_entered"]

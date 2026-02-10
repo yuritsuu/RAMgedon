@@ -6,6 +6,9 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_7p445"]
 size = Vector2(32, 33)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fmaa2"]
+size = Vector2(22, 22)
+
 [node name="enemy_test" type="CharacterBody2D" unique_id=763155620]
 script = ExtResource("1_7p445")
 
@@ -17,3 +20,15 @@ texture = ExtResource("1_5ch0b")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1258178238]
 position = Vector2(0, -0.5)
 shape = SubResource("RectangleShape2D_7p445")
+
+[node name="Timer" type="Timer" parent="." unique_id=1277949409]
+wait_time = 0.2
+one_shot = true
+
+[node name="hurtbox" type="Area2D" parent="." unique_id=1924206590]
+
+[node name="hurtbox_colision" type="CollisionShape2D" parent="hurtbox" unique_id=1682545801]
+shape = SubResource("RectangleShape2D_fmaa2")
+debug_color = Color(1, 0, 0, 0.41960785)
+
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]

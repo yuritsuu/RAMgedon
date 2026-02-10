@@ -206,15 +206,22 @@ func get_combo_damage():
 	return 10
 
 
-func _on_attack_hitbox_body_entered(body):
-	if body.has_method("take_damage"):
-		body.take_damage(get_combo_damage())
+func _on_attack_hitbox_area_entered(area: Area2D) -> void:
+	var enemy = area.get_parent()
+
+	if enemy.has_method("take_damage"):
+		enemy.take_damage(get_combo_damage())
 		hit_stop(0.05)
 
 		match attack_dir:
-			AttackDirection.FORWARD: body.velocity.x = facing_dir * 200
-			AttackDirection.UP: body.velocity.y = -150
-			AttackDirection.DOWN: body.velocity.y = 150
+			AttackDirection.FORWARD:
+				enemy.apply_knockback(Vector2(facing_dir * 250, -100))
+			AttackDirection.DOWN:
+				enemy.apply_knockback(Vector2(0, 250))
+
+
+func _on_attack_hitbox_body_entered(body):
+	pass
 
 
 func hit_stop(time := 0.05):
@@ -363,3 +370,7 @@ func update_animation():
 func _on_hitbox_area_entered(area: Area2D) -> void:
 	if area.name == "enemy_attack_range":
 		health_bar.health -= 10
+
+
+
+	
