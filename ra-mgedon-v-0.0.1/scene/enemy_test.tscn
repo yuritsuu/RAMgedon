@@ -4,21 +4,21 @@
 [ext_resource type="Script" uid="uid://bhqrix2vlbgev" path="res://scripts/enemy_test.gd" id="1_7p445"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_7p445"]
-size = Vector2(32, 33)
+size = Vector2(30, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_fmaa2"]
-size = Vector2(22, 22)
+size = Vector2(32, 32)
 
 [node name="enemy_test" type="CharacterBody2D" unique_id=763155620]
 script = ExtResource("1_7p445")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=692025794]
+modulate = Color(0, 0, 0, 1)
 position = Vector2(1.1920929e-07, 1.1920929e-07)
 scale = Vector2(0.26367188, 0.26367188)
 texture = ExtResource("1_5ch0b")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1258178238]
-position = Vector2(0, -0.5)
 shape = SubResource("RectangleShape2D_7p445")
 
 [node name="Timer" type="Timer" parent="." unique_id=1277949409]

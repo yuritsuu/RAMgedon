@@ -39,7 +39,10 @@ func take_damage(damage: int):
 
 
 func apply_knockback(force: Vector2):
-	velocity += force
+	if is_on_floor():
+		velocity += force
+	else:
+		return
 
 
 func _on_timer_timeout() -> void:

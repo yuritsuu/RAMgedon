@@ -8,6 +8,13 @@ enum ActionState { NONE, DASH, ATTACK }
 enum AttackDirection { FORWARD, UP, DOWN }
 
 # ======================
+# WEAPONS
+# ======================
+enum WeaponType { SWORD, GUN }
+
+var current_weapon : WeaponType = WeaponType.SWORD
+
+# ======================
 # ZMIENNE
 # ======================
 var attack_dir: AttackDirection = AttackDirection.FORWARD
@@ -71,16 +78,24 @@ var combo_timer := 0.0
 var freeze_timer := 0.0
 var previous_attack_dir = AttackDirection.FORWARD
 
+var bullet_path=preload("res://scene/bullet.tscn")
 @onready var attack_hitbox: Area2D = $weapons/weapon1/attack_hitbox
 @onready var attack_range: CollisionShape2D = $weapons/weapon1/attack_hitbox/Range
 @onready var health_bar: ProgressBar = $CanvasLayer/HealtBar
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
+@onready var weapon2: Node2D = $weapons/weapon2
 
 
 # ======================
 # MAIN LOOP
 # ======================
 func _physics_process(delta):
+	if Input.is_action_just_pressed("switch_weapon"):
+		switch_weapon()
+	update_weapon_rotation()
+
+
+
 	if freeze_timer > 0:
 		freeze_timer -= delta
 		return
@@ -124,15 +139,23 @@ func handle_action_fsm(delta):
 func check_action_input():
 	if Input.is_action_just_pressed("dash") and can_dash:
 		start_dash()
+
 	elif Input.is_action_just_pressed("attack"):
-		if action_state in [ActionState.NONE, ActionState.ATTACK]:
-			if Input.is_action_pressed("up"):
-				attack_dir = AttackDirection.UP
-			elif Input.is_action_pressed("down"):
-				attack_dir = AttackDirection.DOWN
-			else:
-				attack_dir = AttackDirection.FORWARD
-			start_attack()
+
+		if current_weapon == WeaponType.SWORD:
+			if action_state in [ActionState.NONE, ActionState.ATTACK]:
+				if Input.is_action_pressed("up"):
+					attack_dir = AttackDirection.UP
+				elif Input.is_action_pressed("down"):
+					attack_dir = AttackDirection.DOWN
+				else:
+					attack_dir = AttackDirection.FORWARD
+
+				start_attack()
+
+		elif current_weapon == WeaponType.GUN:
+			fire()
+
 
 
 # ======================
@@ -226,6 +249,52 @@ func _on_attack_hitbox_body_entered(body):
 
 func hit_stop(time := 0.05):
 	freeze_timer = time
+
+
+
+
+
+func fire():
+	var bullet = bullet_path.instantiate()
+	var dir = (get_global_mouse_position() - weapon2.global_position).normalized()
+	bullet.global_position = weapon2.global_position
+	bullet.set_direction(dir)
+	get_parent().add_child(bullet)
+
+
+
+func switch_weapon():
+	if current_weapon == WeaponType.SWORD:
+		current_weapon = WeaponType.GUN
+	else:
+		current_weapon = WeaponType.SWORD
+
+func update_weapon_rotation():
+	if current_weapon != WeaponType.GUN:
+		weapon2.rotation = 0
+		weapon2.scale = Vector2(1,1)
+		return
+
+	var mouse_pos = get_global_mouse_position()
+	var dir = (mouse_pos - global_position).normalized()
+
+	# Obracanie gracza w prawo/lewo
+	if mouse_pos.x < global_position.x:
+		sprite.flip_h = true
+	else:
+		sprite.flip_h = false
+
+	# Obrót broni w stronę kursora
+	weapon2.rotation = dir.angle()
+
+	# Przesunięcie broni względem gracza i odbicie pionowe
+	var base_offset = Vector2(18, -0) # oryginalna pozycja broni przy patrzeniu w prawo
+	if sprite.flip_h:
+		weapon2.position = Vector2(-base_offset.x, base_offset.y)
+		weapon2.scale = Vector2(1, -1)  # odbicie w pionie
+	else:
+		weapon2.position = base_offset
+		weapon2.scale = Vector2(1, 1)
 
 
 # ======================
@@ -364,13 +433,11 @@ func update_animation():
 			MovementState.FALL: sprite.play("fall")
 			MovementState.WALL_SLIDE: sprite.play("wall_slide")
 
-	sprite.flip_h = facing_dir < 0
+	if current_weapon == WeaponType.SWORD:
+		sprite.flip_h = facing_dir < 0
+
 
 
 func _on_hitbox_area_entered(area: Area2D) -> void:
 	if area.name == "enemy_attack_range":
 		health_bar.health -= 10
-
-
-
-	

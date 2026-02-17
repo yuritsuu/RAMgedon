@@ -76,6 +76,7 @@ script = ExtResource("4_u3ux8")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D2" unique_id=848579020]
 position = Vector2(5.5, -5)
 shape = SubResource("RectangleShape2D_hngkw")
+disabled = true
 
 [node name="enemy_test" parent="." unique_id=763155620 instance=ExtResource("4_1ifl7")]
 position = Vector2(180, -21)

@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://uv7hmk73lsp5"]
+
+[ext_resource type="Texture2D" uid="uid://cdrpei3sllff5" path="res://asstes/icon.svg" id="1_qwydi"]
+[ext_resource type="Script" uid="uid://wqg7ken8dujc" path="res://scripts/bullet.gd" id="1_xw300"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_m2l4i"]
+size = Vector2(16, 4)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xw300"]
+size = Vector2(20, 6)
+
+[node name="bullet" type="CharacterBody2D" unique_id=743160479]
+script = ExtResource("1_xw300")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=108945852]
+shape = SubResource("RectangleShape2D_m2l4i")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1961251069]
+position = Vector2(-3.5762787e-07, 0)
+scale = Vector2(0.15625, 0.046875)
+texture = ExtResource("1_qwydi")
+
+[node name="Hibox" type="Area2D" parent="." unique_id=29306173]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hibox" unique_id=118456123]
+shape = SubResource("RectangleShape2D_xw300")
+
+[connection signal="area_entered" from="Hibox" to="." method="_on_hibox_area_entered"]
